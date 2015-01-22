@@ -90,10 +90,11 @@ class ScanEngine(object):
 class GoogleSearcher(object):
 	def __init__(self, pool_size=1):
 		super(GoogleSearcher, self).__init__()
-		self.scan_engine = ScanEngine(pool_size=pool_size)
+		self.pool_size = pool_size
+		self.scan_engine = ScanEngine(pool_size=self.pool_size)
 	def do_searches_from_file(self, filename, pages_per_search=1):
 		if self.scan_engine.finished:
-			self.scan_engine = ScanEngine(pool_size=pool_size)
+			self.scan_engine = ScanEngine(pool_size=self.pool_size)
 		with open(filename, 'r') as f:
 			search_queries = f.read().replace('\r','')
 			while '\n\n' in search_queries:
@@ -104,6 +105,6 @@ class GoogleSearcher(object):
 		return self.scan_engine.run()
 	def do_single_search(self, search_query, pages_per_search=1):
 		if self.scan_engine.finished:
-			self.scan_engine = ScanEngine(pool_size=pool_size)
+			self.scan_engine = ScanEngine(pool_size=self.pool_size)
 		self.scan_engine.add_search_task(SearchTask(search_query, pages_per_search))
 		return self.scan_engine.run()
