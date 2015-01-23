@@ -55,7 +55,7 @@ class SearchTask(object):
 	def __call__(self):
 		result_urls = []
 		time.sleep(random.randint(1,1000)/1000.0)
-		initial_resp = requests.get(self.init_url, headers=self.headers)
+		initial_resp = requests.get(self.init_url, headers=self.headers, cookies=self.cookies)
 		initial_html = initial_resp.text
 		initial_result_page = ResultPage(initial_html)
 		initial_result_links = initial_result_page.find_result_links()
@@ -65,7 +65,7 @@ class SearchTask(object):
 		for i in xrange(1, self.pages):
 			next_url = result_page.find_next_page_link()
 			time.sleep(random.randint(1,1000)/1000.0)
-			resp = requests.get(next_url, headers=self.headers)
+			resp = requests.get(next_url, headers=self.headers, cookies=self.cookies)
 			html = resp.text
 			result_page = ResultPage(html)
 			result_links = result_page.find_result_links()
