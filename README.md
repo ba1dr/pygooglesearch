@@ -7,4 +7,7 @@ This is my replacement solution. It makes get requests that look like the ones y
 
 It is also multithreaded.
 
+A requirement of this program is the python requests module.
+
+
 I am truly sorry that I'm too lazy to document or comment my code.
