@@ -44,11 +44,14 @@ class ResultPage(BeautifulSoup):
 class SearchTask(object):
 	def __init__(self, query, pages):
 		super(SearchTask, self).__init__()
+		self.cookies = self.get_cookies()
 		self.query = query
 		self.pages = pages
 		self.user_agent = random.choice(USER_AGENTS[random.choice(USER_AGENTS.keys())])
 		self.headers = {'User-Agent':self.user_agent, 'DNT': '1'}
 		self.init_url = 'https://www.google.com/search?rls=en&q={}&ie=UTF-8&oe=UTF-8'.format(self.query)
+	def get_cookies(self):
+		return requests.get('https://www.google.com/').cookies
 	def __call__(self):
 		result_urls = []
 		time.sleep(random.randint(1,1000)/1000.0)
