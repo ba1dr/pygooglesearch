@@ -2,7 +2,7 @@
 # Created by Tesla on January 20, 2015
 # Module for searching google, multithreaded
 # There are no commments and I didn't write any documentation, so just read the code
-# The only class you'll need to use is GoogleSearcher (lines 90-105)
+# The only class you'll need to use is GoogleSearcher (lines 93-113)
 import requests
 import time
 import urllib
