@@ -19,7 +19,8 @@ Example:
 from pygooglesearch import googlesearch as gs
 
 search_string = "fish and cat"
-searcher = gs.GoogleSearcher()
+myproxy = {'ip': '192.168.0.1', 'port': 3128}
+searcher = gs.GoogleSearcher(proxy=proxy)
 result = searcher.do_single_search(search_string, 20)
 print result
 ```
