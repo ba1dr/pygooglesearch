@@ -1,5 +1,8 @@
 # pygooglesearch
-Python google search module
+
+This is a fork of [https://github.com/735tesla/pygooglesearch](https://github.com/735tesla/pygooglesearch)
+
+##Python google search module
 
 A while ago I was disappointed to see that pygoogle no longer worked because of google got rid of their SOAP api.
 
@@ -10,4 +13,13 @@ It is also multithreaded.
 A requirement of this program is the python requests module.
 
 
-I am truly sorry that I'm too lazy to document or comment my code.
+Example:
+
+```python
+from pygooglesearch import googlesearch as gs
+
+search_string = "fish and cat"
+searcher = gs.GoogleSearcher()
+result = searcher.do_single_search(search_string, 20)
+print result
+```
