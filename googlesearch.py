@@ -32,7 +32,7 @@ def normalize_proxy(proxy):
         return None
     p = None
     if isinstance(proxy, (str, unicode)):  # just string like '192.168.0.1:3128'
-        if not proxy.startswith('http://'):  # proxy should include protocol
+        if not (proxy.startswith('http://') or proxy.startswith('https://')):  # proxy should include protocol
             p = {'http': "http://%s" % proxy, 'https': "http://%s" % proxy}
         else:
             p = {'http': proxy, 'https': proxy}
@@ -66,20 +66,40 @@ class ResultPage(BeautifulSoup):
         return ('https://www.%s' % self.google) + \
             '{}'.format(self.findAll('div', attrs={'id': 'navcnt'})[0].findAll('a')[0]['href'])
 
-    def find_result_links(self):
+    def find_result_links(self, extended=False):
         result_links = []
         result_divs = self.findAll('div', attrs={'class': 'rc'})
         for result_div in result_divs:
-            result_links.append(result_div.findAll('a')[0]['href'])
+            link = result_div.findAll('a')[0]['href']
+            if not extended:
+                result_links.append(link)
+                continue
+            item = {'url': link, 'date': None}
+            # search for results date
+            rdate = None
+            d = result_div.findAll('span', attrs={'class': 'f'})
+            if d:
+                rdate = d[0].text
+            else:
+                d = result_div.findAll('div', attrs={'class': 'f slp'})
+                if d:
+                    rdate = d[0].text
+            if rdate:
+                rdate = rdate.split(' -')[0]
+            item['date'] = rdate
+            print item
+            result_links.append(item)
         return result_links
 
 
 class SearchTask(object):
-    def __init__(self, query, results, proxy=None, timeout=None, google=None):
+    def __init__(self, query, results, proxy=None, timeout=None, google=None, extended_search=False, debug=False):
         super(SearchTask, self).__init__()
         self.google = google or DEFAULT_GOOGLE
         self.query = query
         self.results = results
+        self.debug = debug
+        self.extended_search = extended_search
         self.user_agent = ''
         self.proxy = proxy
         self.timeout = timeout or (30, 90)  # requests timeout: tuple(connect, read)
@@ -91,8 +111,10 @@ class SearchTask(object):
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
             'Accept-Language': 'en-us,en;q=0.5'
         }
-        self.init_url = ('https://www.%s' % self.google) + '/search?rls=en&q={}&ie=UTF-8&oe=UTF-8'.format(self.query)
+        self.init_url = ('https://www.%s' % self.google) + \
+            '/search?rls=en&q={}&ie=UTF-8&oe=UTF-8&tbs=cdr%3A1%2Ccd_min%3A1980'.format(self.query)
         self.cookies = self.get_cookies()
+        self.cookies.update({"x": '222'})
 
     def _get_response(self, url):
         """ General method for request """
@@ -100,6 +122,9 @@ class SearchTask(object):
                             proxies=self.proxy, timeout=self.timeout)
         if not resp.ok:
             raise SearchError("HTTP code %s" % resp.status_code)
+        if self.debug:
+            with open("/tmp/searchresult.txt", 'w') as srw:
+                srw.write(resp.text.encode('utf-8'))
         return resp.text
 
     def get_cookies(self):
@@ -110,7 +135,7 @@ class SearchTask(object):
         time.sleep(random.randint(1, 1000) / 1000.0)
         initial_html = self._get_response(self.init_url)
         initial_result_page = ResultPage(initial_html, google=self.google)
-        initial_result_links = initial_result_page.find_result_links()
+        initial_result_links = initial_result_page.find_result_links(extended=self.extended_search)
         for result_link in initial_result_links:
             result_urls.append(result_link)
         result_page = initial_result_page
@@ -121,7 +146,7 @@ class SearchTask(object):
             time.sleep(random.randint(1, 1000) / 1000.0)
             html = self._get_response(next_url)
             result_page = ResultPage(html, google=self.google)
-            result_links = result_page.find_result_links()
+            result_links = result_page.find_result_links(extended=self.extended_search)
             if result_links == 0:
                 raise SearchError("Received 0 results on page %s!" % page)
             result_urls += result_links
@@ -154,11 +179,12 @@ class ScanEngine(object):
 
 
 class GoogleSearcher(object):
-    def __init__(self, pool_size=1, proxy=None, timeout=None, google=None):
+    def __init__(self, pool_size=1, proxy=None, timeout=None, google=None, extended_search=False):
         super(GoogleSearcher, self).__init__()
         self.proxy = normalize_proxy(proxy)
         self.timeout = timeout
         self.google = google
+        self.extended = extended_search
         self.pool_size = pool_size
         self.scan_engine = ScanEngine(pool_size=self.pool_size)
 
@@ -172,12 +198,14 @@ class GoogleSearcher(object):
             search_queries = search_queries.split('\n')
             for search_query in search_queries:
                 self.scan_engine.add_search_task(SearchTask(search_query, results, proxy=self.proxy,
-                                                            timeout=self.timeout, google=self.google))
+                                                            timeout=self.timeout, google=self.google,
+                                                            extended_search=self.extended))
         return self.scan_engine.run()
 
     def do_single_search(self, search_query, results=10):
         if self.scan_engine.finished:
             self.scan_engine = ScanEngine(pool_size=self.pool_size)
         self.scan_engine.add_search_task(SearchTask(search_query, results, proxy=self.proxy,
-                                         timeout=self.timeout, google=self.google))
+                                         timeout=self.timeout, google=self.google,
+                                         extended_search=self.extended))
         return self.scan_engine.run()
